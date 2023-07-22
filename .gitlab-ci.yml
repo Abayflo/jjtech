@@ -1,0 +1,60 @@
+image:
+  name: hashicorp/terraform
+  entrypoint: [""]
+    
+
+variables:
+  AWS_DEFAULT_REGION: $CI_AWS_REGION
+  AWS_ACCESS_KEY_ID: $CI_AWS_ACCESS_KEY_ID
+  AWS_SECRET_ACCESS_KEY : $CI_AWS_SECRET_ACCESS_KEY
+
+before_script:
+  - rm -rf .terraform
+  - terraform --version
+  - terraform init
+
+stages:
+  - format
+  - validate
+  - plan
+  - apply
+  - destroy
+
+format:
+  stage: format
+  script:
+    - terraform fmt
+
+validate:
+  stage: validate
+  script:
+    - terraform validate
+  dependencies:
+    - format
+
+plan:
+  stage: plan
+  script:
+    - terraform plan -out "planfile"
+  artifacts:
+    paths:
+      - planfile
+  dependencies:
+    - validate
+
+apply:
+  stage: apply
+  allow_failure: true
+  script:
+    - terraform apply -auto-approve -input=false "planfile"
+  dependencies:
+    - plan
+  when: manual
+
+destroy: 
+  stage: destroy
+  script:
+    - terraform destroy --auto-approve 
+  dependencies:
+    - apply
+  when: manual
